@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns:int="http://www.springframework.org/schema/integration"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:beans="http://www.springframework.org/schema/beans"
+             xmlns:int-ws="http://www.springframework.org/schema/integration/ws"
+             xmlns:oxm="http://www.springframework.org/schema/oxm"
+             xmlns:ws="http://www.springframework.org/schema/web-services"
+             xmlns:stream="http://www.springframework.org/schema/integration/stream" xmlns:task="http://www.springframework.org/schema/task"
+             xsi:schemaLocation="http://www.springframework.org/schema/beans
+                  http://www.springframework.org/schema/beans/spring-beans.xsd
+                  http://www.springframework.org/schema/integration
+                  http://www.springframework.org/schema/integration/spring-integration.xsd http://www.springframework.org/schema/integration/ws http://www.springframework.org/schema/integration/ws/spring-integration-ws.xsd http://www.springframework.org/schema/oxm http://www.springframework.org/schema/oxm/spring-oxm.xsd http://www.springframework.org/schema/web-services http://www.springframework.org/schema/web-services/web-services.xsd http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd">
+
+    <ws:interceptors>
+        <beans:bean class="org.springframework.ws.server.endpoint.interceptor.PayloadLoggingInterceptor"/>
+    </ws:interceptors>
+
+    <int:channel id="currencyBrokerInput"/>
+    
+    <task:executor id="taskExecutor" pool-size="4-10" queue-capacity="100" rejection-policy="CALLER_RUNS"/>
+    <!-- map request -->
+    <oxm:jaxb2-marshaller id="marshaller">
+        <oxm:class-to-be-bound name="pl.prxsoft.samples.eai.currency.model.CurrenciesType"/>
+        <oxm:class-to-be-bound name="pl.prxsoft.samples.eai.currency.model.CurrencyBrokerRequestType"/>
+        <oxm:class-to-be-bound name="pl.prxsoft.samples.eai.currency.model.CurrencyBrokerResponseType"/>
+        <oxm:class-to-be-bound name="pl.prxsoft.samples.eai.currency.model.CurrencyType"/>
+    </oxm:jaxb2-marshaller>
+
+    <int:channel id="currencyBrokerOutput"/>
+    <int-ws:inbound-gateway
+            id="ws-inbound-gateway" request-channel="currencyBrokerInput"
+            marshaller="marshaller" unmarshaller="marshaller"
+            reply-channel="currencyBrokerOutput"
+            />
+
+    <ws:dynamic-wsdl id="currencybroker" portTypeName="CurrencyBrokerService" locationUri="/currencybroker">
+        <ws:xsd location="/WEB-INF/currency_broker.xsd"/>
+    </ws:dynamic-wsdl>
+
+    <beans:bean id="accountStatusEnricher" class="pl.prxsoft.samples.eai.currency.AccountStatusEnricher"/>
+    <beans:bean id="currencyToRequestSummer" class="pl.prxsoft.samples.eai.currency.CurrencyToRequestSummer"/>
+    <!-- enrich with account status and group currencies -->
+    <int:chain input-channel="currencyBrokerInput" output-channel="currencyBrokerOutChannel">
+        <int:header-enricher>
+                <int:header name="accountAmount" method="checkAccountStatus" ref="accountStatusEnricher"/>
+        </int:header-enricher>
+        <int:transformer method="sumUpCurrencies" ref="currencyToRequestSummer"/>
+    </int:chain>
+
+    <int:channel id="accountNotExistsChannel"/>
+    <int:channel id="accountExistsChannel"/>
+    <int:router id="accountExistsRouter" input-channel="currencyBrokerOutChannel" expression="headers.accountAmount &lt; 0 ? 'currencyBrokerOutChannel' : 'accountExistsChannel'" />
+
+    <int:chain input-channel="accountExistsChannel" output-channel="currencyConverterChannel">
+        <int:header-enricher>
+            <int:header name="originalRequest" expression="payload"/>
+        </int:header-enricher>
+        <int:splitter>
+            <beans:bean class="pl.prxsoft.samples.eai.currency.CurrencyBrokerReqSplitter"/>
+        </int:splitter>
+    </int:chain>
+
+    <int:channel id="currencyConverterChannel">
+        <int:dispatcher task-executor="taskExecutor"/>
+    </int:channel>
+
+    <int:enricher input-channel="currencyConverterChannel"
+                  output-channel="currencyTransactionLineCheckChannel"
+                  request-channel="currencyConverterWSReqChannel"
+                  reply-channel="currencyConverterWSResChannel">
+        <int:property name="exchangeRate" expression="payload"/>
+    </int:enricher>
+
+    <int:channel id="currencyConverterWSResChannel"/>
+    <int:channel id="currencyTransactionLineCheckChannel"/>
+    <int:channel id="currencyTransactionCheckChannel"/>
+
+    <int:chain input-channel="currencyTransactionLineCheckChannel" output-channel="currencyConverterWSResChannel">
+        <int:aggregator />
+        <int:header-enricher>
+            <int:header name="totalAmount" expression="payload.![exchangeRate * amount]"/>
+        </int:header-enricher>
+    </int:chain>
+
+
+
+
+
+
+
+    <beans:bean class="pl.prxsoft.samples.eai.currency.transformer.CurrencyExchangeWsTransformer" id="currencyExchangeWsTransformer"/>
+    <int:chain input-channel="currencyConverterWSReqChannel" output-channel="currencyConverterWSResChannel">
+        <int:header-enricher>
+            <int:header name="currencyType" expression="payload"/>
+        </int:header-enricher>
+
+        <int:transformer ref="currencyExchangeWsTransformer" method="convertToCurrencyRequest"/>
+        <int-ws:header-enricher>
+            <int-ws:soap-action value="http://www.webserviceX.NET/ConversionRate"/>
+        </int-ws:header-enricher>
+
+        <int-ws:outbound-gateway uri="http://www.webservicex.net/CurrencyConvertor.asmx"/>
+
+        <int:transformer ref="currencyExchangeWsTransformer" method="convertWSResponseToOut"/>
+    </int:chain>
+
+    <!-- aggregator and summer -->
+
+
+   <!-- TODO: add call to WS, sum up costs, verify if account can withdraw sum, withdraw sum and return total -->
+   <!-- The response from the service is logged to the console. -->
+   <stream:stdout-channel-adapter channel="currencyConverterWSResChannel"/>
+
+    <!-- account is not present in system - respond with error -->
+    <int:channel id="currencyBrokerOutChannel"/>
+    <int:chain input-channel="currencyBrokerOutChannel" output-channel="currencyBrokerOutput">
+        <int:transformer expression="new pl.prxsoft.samples.eai.currency.model.CurrencyBrokerResponseType(false,'Account number is invalid')"/>
+    </int:chain>
+</beans:beans>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="http://prxsoftware.pl/samples/eai"
+           targetNamespace="http://prxsoftware.pl/samples/eai">
+
+    <xs:element name="currencyBrokerRequest" type="currencyBrokerRequestType"/>
+    <xs:complexType name="currenciesType">
+        <xs:sequence>
+            <xs:element type="currencyType" name="currency" maxOccurs="unbounded" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="currencyBrokerRequestType">
+        <xs:sequence>
+            <xs:element type="xs:string" name="account"/>
+            <xs:element type="currenciesType" name="currencies"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="currencyType">
+        <xs:sequence>
+            <xs:element name="toCurrency" type="xs:string"/>
+            <xs:element name="amount" type="xs:decimal"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:element name="currencyBrokerResponse" type="currencyBrokerResponseType"/>
+    <xs:complexType name="currencyBrokerResponseType">
+        <xs:sequence>
+            <xs:element type="xs:string" name="account"/>
+            <xs:element type="xs:boolean" name="status"/>
+            <xs:element type="xs:decimal" name="totalAmount"/>
+            <xs:element type="xs:string" name="reason"/>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>

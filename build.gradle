@@ -1,0 +1,62 @@
+apply plugin: 'war'
+apply plugin: 'jetty'
+apply plugin: 'idea'
+apply plugin: 'java'
+// in future spock is planed to be used
+apply plugin: 'groovy'
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+ext.springVersion = '3.2.3.RELEASE'
+ext.springIntVersion = '2.2.4.RELEASE'
+
+repositories {
+   mavenRepo url: 'http://maven.springframework.org/release'
+   mavenRepo url: 'http://maven.springframework.org/snapshot'
+   mavenCentral()
+   mavenRepo url: 'http://maven.springframework.org/milestone'
+   mavenRepo url: 'https://repository.jboss.org/nexus/content/repositories/releases/'
+ }
+
+dependencies {
+  compile "org.springframework:spring-orm:$springVersion"
+  compile "org.springframework:spring-aop:$springVersion"
+  compile "org.springframework:spring-webmvc:$springVersion"
+  compile "org.springframework:spring-oxm:$springVersion"
+  compile "org.springframework:spring-jms:$springVersion"
+  testCompile "org.springframework:spring-test:$springVersion"
+
+  compile "org.springframework:spring-webmvc:$springVersion"
+  compile "org.springframework:spring-web:$springVersion"
+  compile "org.springframework.integration:spring-integration-core:$springIntVersion"
+  compile "org.springframework.integration:spring-integration-xml:$springIntVersion"
+  compile "org.springframework.integration:spring-integration-http:$springIntVersion"
+  compile "org.springframework.integration:spring-integration-stream:$springIntVersion"
+  compile "org.springframework.integration:spring-integration-file:$springIntVersion"
+  compile "org.springframework.integration:spring-integration-jdbc:$springIntVersion"
+  compile "org.springframework.integration:spring-integration-jmx:$springIntVersion"
+  compile "org.springframework.integration:spring-integration-ws:$springIntVersion"
+
+  compile "com.google.guava:guava:14.0.1"
+  compile 'org.slf4j:jcl-over-slf4j:1.7.2'
+  compile 'ch.qos.logback:logback-classic:1.0.13'
+  testCompile 'org.spockframework:spock-spring:0.7-groovy-2.0'
+  // groovy for tests
+  testCompile 'org.codehaus.groovy:groovy-all:2.1.5'
+  compile 'postgresql:postgresql:9.1-901-1.jdbc4'
+}
+
+
+[jettyRun, jettyRunWar]*.with {
+  httpPort = 9000
+  stopPort = 19742
+}
+
+task makeDirs(description:'make all dirs for project setup') << {
+   def sources = [sourceSets.main, sourceSets.test]
+    sources*.allSource*.srcDirs.flatten().each { File srcDir ->
+        println "making $srcDir"
+        srcDir.mkdirs()
+    }
+}
