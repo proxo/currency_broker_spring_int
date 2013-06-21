@@ -1,0 +1,22 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:eai="http://prxsoftware.pl/samples/eai">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <eai:currencyBrokerRequest>
+         <eai:account>1111112</eai:account>
+         <eai:currencies>
+            <eai:currency>
+               <eai:toCurrency>USD</eai:toCurrency>
+               <eai:amount>400</eai:amount>
+            </eai:currency>
+            <eai:currency>
+               <eai:toCurrency>USD</eai:toCurrency>
+               <eai:amount>411</eai:amount>
+            </eai:currency>
+		 <eai:currency>
+               <eai:toCurrency>GBP</eai:toCurrency>
+               <eai:amount>100</eai:amount>
+            </eai:currency>
+         </eai:currencies>
+      </eai:currencyBrokerRequest>
+   </soapenv:Body>
+</soapenv:Envelope>

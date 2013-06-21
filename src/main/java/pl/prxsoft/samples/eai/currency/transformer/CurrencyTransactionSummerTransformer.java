@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.integration.Message;
 import org.springframework.integration.annotation.Transformer;
+import org.springframework.stereotype.Component;
 import pl.prxsoft.samples.eai.currency.model.CurrencyBrokerRequestType;
 import pl.prxsoft.samples.eai.currency.model.CurrencyBrokerResponseType;
 import pl.prxsoft.samples.eai.currency.model.CurrencyType;
@@ -17,6 +18,7 @@ import java.util.Collection;
  * Date: 19.06.13
  * Time: 16:16
  */
+@Component("transactionSummerTransformer")
 public class CurrencyTransactionSummerTransformer {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CurrencyTransactionSummerTransformer.class);

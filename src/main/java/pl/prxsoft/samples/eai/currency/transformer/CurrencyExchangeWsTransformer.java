@@ -1,6 +1,7 @@
 package pl.prxsoft.samples.eai.currency.transformer;
 
 import org.springframework.integration.Message;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.xml.transform.StringSource;
 import org.springframework.xml.xpath.Jaxp13XPathTemplate;
@@ -24,6 +25,7 @@ import java.util.HashMap;
  * Date: 18.06.13
  * Time: 18:29
  */
+@Component("currencyExchangeWsTransformer")
 public class CurrencyExchangeWsTransformer {
 
   private Jaxp13XPathTemplate xPathOperations = new Jaxp13XPathTemplate();

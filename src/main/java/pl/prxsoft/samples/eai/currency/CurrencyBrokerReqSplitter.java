@@ -1,6 +1,7 @@
 package pl.prxsoft.samples.eai.currency;
 
 import org.springframework.integration.annotation.Splitter;
+import org.springframework.stereotype.Component;
 import pl.prxsoft.samples.eai.currency.model.CurrencyBrokerRequestType;
 import pl.prxsoft.samples.eai.currency.model.CurrencyType;
 
@@ -13,6 +14,7 @@ import java.util.List;
  * Time: 11:03
  */
 
+@Component("currencyBrokerReqSplitter")
 public class CurrencyBrokerReqSplitter {
 
   @Splitter
