@@ -39,15 +39,15 @@ public class CurrencyToRequestSummer {
     CurrenciesType currenciesType = new CurrenciesType();
 
     List<CurrencyType> currencyTypeList = currenciesType.getCurrency();
-    for (String key : decimalMultimap.keySet()) {
+    for (String currencyCode : decimalMultimap.keySet()) {
       BigDecimal value = BigDecimal.ZERO;
-      for (BigDecimal v : decimalMultimap.get(key)) {
+      for (BigDecimal v : decimalMultimap.get(currencyCode)) {
         value = value.add(v);
       }
 
       CurrencyType currencyType = new CurrencyType();
       currencyType.setAmount(value);
-      currencyType.setToCurrency(key);
+      currencyType.setToCurrency(currencyCode);
       currencyTypeList.add(currencyType);
     }
 

@@ -1,3 +1,9 @@
-This file was created by IntelliJ IDEA 12.1.4 for binding GitHub repository
-This file was modified by IntelliJ IDEA 12.1.4 for binding GitHub repository
-This file was modified by IntelliJ IDEA 12.1.4 for binding GitHub repository
+Sample currency conversion flow for currency broker shop based on Spring Integration.
+This flow accepts SOAP request to exchange currencies and based on external rate provider calculates if account has required amount.
+If the account has sufficient funds the flow charges the account and potentially stores the currencies.
+
+Command to run:
+gradle jettyRun
+Webservice is available under port: http://localhost:9000/currency_broker_spring_int/currencybroker.wsdl
+Use sample xmls to run the test.
+

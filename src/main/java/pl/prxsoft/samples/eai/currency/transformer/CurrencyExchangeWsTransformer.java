@@ -62,18 +62,22 @@ public class CurrencyExchangeWsTransformer {
 
   public BigDecimal convertWSResponseToOut(Message<?> msg) {
     DOMSource domSource = (DOMSource) msg.getPayload();
-    String resultXML = dom2String(domSource);
-    System.out.printf("DOM Source: " + resultXML);
+//    final String resultXML = dom2String(domSource);
+
     xPathOperations.setNamespaces(new HashMap<String, String>() {{
       put("soap","http://schemas.xmlsoap.org/soap/envelope/");
       put("c", "http://www.webserviceX.NET/");
     }
     });
 
-    String value = xPathOperations.evaluateAsString("/soap:Envelope/soap:Body/*[local-name()='ConversionRateResponse']/*[local-name()='ConversionRateResult']/text()",domSource);
+    String value = xPathOperations.evaluateAsString(
+      "/soap:Envelope/soap:Body/*[local-name()='ConversionRateResponse']/*[local-name()='ConversionRateResult']/text()",
+      domSource);
+
     if (StringUtils.hasText(value)) {
       return new BigDecimal(value.trim());
     }
+
     throw new IllegalStateException("WebService responded with illegal value: " + value);
   }
 

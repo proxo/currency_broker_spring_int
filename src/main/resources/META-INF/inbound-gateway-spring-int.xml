@@ -40,7 +40,7 @@
     <beans:bean id="accountStatusEnricher" class="pl.prxsoft.samples.eai.currency.AccountStatusEnricher"/>
     <beans:bean id="currencyToRequestSummer" class="pl.prxsoft.samples.eai.currency.CurrencyToRequestSummer"/>
     <!-- enrich with account status and group currencies -->
-    <int:chain input-channel="currencyBrokerInput" output-channel="currencyBrokerOutChannel">
+    <int:chain input-channel="currencyBrokerInput" output-channel="accountStatusCheckChannel">
         <int:header-enricher>
                 <int:header name="accountAmount" method="checkAccountStatus" ref="accountStatusEnricher"/>
         </int:header-enricher>
@@ -49,7 +49,8 @@
 
     <int:channel id="accountNotExistsChannel"/>
     <int:channel id="accountExistsChannel"/>
-    <int:router id="accountExistsRouter" input-channel="currencyBrokerOutChannel" expression="headers.accountAmount &lt; 0 ? 'currencyBrokerOutChannel' : 'accountExistsChannel'" />
+    <int:channel id="accountStatusCheckChannel"/>
+    <int:router id="accountExistsRouter" input-channel="accountStatusCheckChannel" expression="headers.accountAmount &lt; 0 ? 'currencyBrokerOutChannel' : 'accountExistsChannel'" />
 
     <int:chain input-channel="accountExistsChannel" output-channel="currencyConverterChannel">
         <int:header-enricher>
@@ -72,20 +73,30 @@
     </int:enricher>
 
     <int:channel id="currencyConverterWSResChannel"/>
-    <int:channel id="currencyTransactionLineCheckChannel"/>
+    <int:channel id="stdoutChannel"/>
+
+    <int:channel id="currencyTransactionLineCheckChannel">
+        <int:interceptors>
+            <int:wire-tap channel="stdoutChannel" />
+        </int:interceptors>
+    </int:channel>
     <int:channel id="currencyTransactionCheckChannel"/>
 
-    <int:chain input-channel="currencyTransactionLineCheckChannel" output-channel="currencyConverterWSResChannel">
+    <int:chain input-channel="currencyTransactionLineCheckChannel" output-channel="currencyTransactionCheckChannel">
         <int:aggregator />
-        <int:header-enricher>
-            <int:header name="totalAmount" expression="payload.![exchangeRate * amount]"/>
-        </int:header-enricher>
+        <int:transformer ref="transactionSummerTransformer" method="convertCurrenciesRatesToResponse"/>
     </int:chain>
 
+    <beans:bean class="pl.prxsoft.samples.eai.currency.transformer.CurrencyTransactionSummerTransformer" id="transactionSummerTransformer"/>
+    <beans:bean class="pl.prxsoft.samples.eai.currency.OrderFulfillService" id="orderFulfillService"/>
+    <!-- if account response is true -->
+    <int:router input-channel="currencyTransactionCheckChannel" expression="payload.status ? 'fulfillOrderChannel' : 'currencyBrokerOutput'"/>
 
+    <int:channel id="fulfillOrderChannel" datatype="pl.prxsoft.samples.eai.currency.model.CurrencyBrokerResponseType"/>
 
-
-
+    <!-- final provisioning step -->
+    <int:service-activator input-channel="fulfillOrderChannel" output-channel="currencyBrokerOutput"
+                           ref="orderFulfillService" method="fullfillOrder"/>
 
 
     <beans:bean class="pl.prxsoft.samples.eai.currency.transformer.CurrencyExchangeWsTransformer" id="currencyExchangeWsTransformer"/>
@@ -106,10 +117,9 @@
 
     <!-- aggregator and summer -->
 
-
    <!-- TODO: add call to WS, sum up costs, verify if account can withdraw sum, withdraw sum and return total -->
    <!-- The response from the service is logged to the console. -->
-   <stream:stdout-channel-adapter channel="currencyConverterWSResChannel"/>
+   <stream:stdout-channel-adapter channel="stdoutChannel"/>
 
     <!-- account is not present in system - respond with error -->
     <int:channel id="currencyBrokerOutChannel"/>

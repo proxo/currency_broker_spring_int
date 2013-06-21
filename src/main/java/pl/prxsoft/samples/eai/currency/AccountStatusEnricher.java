@@ -16,7 +16,12 @@ import java.math.BigDecimal;
 
 public class AccountStatusEnricher {
 
+  /**
+   * Return account status of {@code -1}
+   * @param msg
+   * @return
+   */
   public BigDecimal checkAccountStatus(Message<CurrencyBrokerRequestType> msg) {
-    return msg.getPayload().getAccount().startsWith("1") ? BigDecimal.ONE : BigDecimal.ONE.negate();
+    return msg.getPayload().getAccount().startsWith("1") ? BigDecimal.valueOf(10000.0) : BigDecimal.ONE.negate();
   }
 }
